@@ -63,3 +63,10 @@ AWS_AGENT_ALIAS_ID=your_alias_id
 - `MyChatBot.php` - Main chatbot class
 - `setup_documents.php` - Document loader
 - `chat.php` - Interactive chat
+
+## 🙏 Acknowledgments
+
+- Built on the [NeuronAI framework](https://github.com/inspector-apm/neuron-ai)
+- Tutorial reference: [How to Create a RAG Agent with Neuron ADK for PHP](https://inspector.dev/how-to-create-a-rag-agent-with-neuron-adk-for-php/) by Inspector.dev
+- Uses [poppler-utils](https://poppler.freedesktop.org/) for PDF processing
+- AWS Bedrock integration for AI capabilities
