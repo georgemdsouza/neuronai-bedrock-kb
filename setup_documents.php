@@ -20,8 +20,7 @@ if (file_exists($envFile)) {
     }
 }
 
-\unlink(__DIR__ . '/demo.store');
-// Load documents into vector store (run this once)
+// Load documents into vector store with re-indexing
 echo "Setting up documents in vector store..." . PHP_EOL;
 
 $kbPath = __DIR__ . '/kb';
@@ -40,11 +39,22 @@ echo "Readers added to loader" . PHP_EOL;
 
 echo "Starting to get documents..." . PHP_EOL;
 $documents = $loader->getDocuments();
-echo "Documents loaded: " . count($documents) . PHP_EOL;
+foreach ($documents as $doc) {
+    switch ($doc->sourceName) {
+        case 'Drylab.pdf':
+            $doc->addMetadata('source', 'drylab');
+            $doc->addMetadata('uploaded_at', date('c'));  // ISO8601 timestamp
+            break;
+        default:
+            $doc->addMetadata('source', 'user_manuals');
+            $doc->addMetadata('uploaded_at', date('c'));  // ISO8601 timestamp
+    }
+}
+// echo "Documents loaded: " . count($documents) . PHP_EOL;
 
-// Add to vector store
-echo "Adding documents to vector store..." . PHP_EOL;
+// Re-index documents in vector store (this will delete old ones and add new ones by source)
+echo "Re-indexing documents in vector store..." . PHP_EOL;
 $chatbot = MyChatBot::make();
-$chatbot->addDocuments($documents);
-echo "Documents added to vector store!" . PHP_EOL;
+$chatbot->reindexBySource($documents);
+echo "Documents re-indexed in vector store!" . PHP_EOL;
 echo "Setup complete! You can now use chat.php for questions." . PHP_EOL;

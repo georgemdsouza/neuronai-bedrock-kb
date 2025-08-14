@@ -22,6 +22,12 @@ class MyPdfReader implements ReaderInterface {
             return [];
         }
         
+        // Validate that the text can be properly JSON encoded
+        if (!$this->isValidForJson($text)) {
+            echo "Skipping file with invalid content for JSON encoding: " . basename($filePath) . PHP_EOL;
+            return [];
+        }
+        
         echo "Creating document with " . strlen($text) . " characters" . PHP_EOL;
         return [new Document($text, ['path' => $filePath])];
     }
@@ -42,15 +48,88 @@ class MyPdfReader implements ReaderInterface {
     }
     
     private function cleanPdfText(string $text): string {
-        // Remove non-UTF8 characters
-        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        // Ensure we have a valid string to work with
+        if (empty($text) || $text === null) {
+            return '';
+        }
         
-        // Remove control characters except basic whitespace
+        // First, try to detect and fix encoding issues
+        if (!mb_check_encoding($text, 'UTF-8')) {
+            // Try to convert from various encodings
+            $encodings = ['ISO-8859-1', 'Windows-1252', 'ASCII'];
+            foreach ($encodings as $encoding) {
+                if (mb_check_encoding($text, $encoding)) {
+                    $converted = mb_convert_encoding($text, 'UTF-8', $encoding);
+                    if ($converted !== false && $converted !== null && is_string($converted)) {
+                        $text = $converted;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Force UTF-8 encoding and remove invalid characters
+        $converted = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        if ($converted !== false && $converted !== null && is_string($converted)) {
+            $text = $converted;
+        }
+        
+        // Ensure text is still valid before proceeding
+        if (empty($text) || $text === null || !is_string($text)) {
+            return '';
+        }
+        
+        // Remove any remaining invalid UTF-8 sequences
         $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/', '', $text);
+        
+        // Ensure text is still valid
+        if (empty($text) || $text === null || !is_string($text)) {
+            return '';
+        }
+        
+        // Remove any other problematic characters that might cause JSON encoding issues
+        // Use a safer approach to remove replacement characters
+        $text = str_replace("\xEF\xBF\xBD", '', $text); // Remove UTF-8 replacement character
+        
+        // Ensure text is still valid
+        if (empty($text) || $text === null || !is_string($text)) {
+            return '';
+        }
         
         // Clean up multiple whitespace
         $text = preg_replace('/\s+/', ' ', $text);
         
+        // Final UTF-8 validation
+        $converted = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        if ($converted !== false && $converted !== null && is_string($converted)) {
+            $text = $converted;
+        }
+        
+        // Final safety check
+        if (empty($text) || $text === null || !is_string($text)) {
+            return '';
+        }
+        
         return trim($text);
+    }
+
+    private function isValidForJson(string $text): bool {
+        // Check if the text can be properly JSON encoded
+        $testArray = ['content' => $text];
+        $jsonResult = json_encode($testArray);
+        
+        if ($jsonResult === false) {
+            $error = json_last_error_msg();
+            echo "JSON encoding error: " . $error . PHP_EOL;
+            return false;
+        }
+        
+        // Also verify UTF-8 validity
+        if (!mb_check_encoding($text, 'UTF-8')) {
+            echo "Text is not valid UTF-8" . PHP_EOL;
+            return false;
+        }
+        
+        return true;
     }
 }

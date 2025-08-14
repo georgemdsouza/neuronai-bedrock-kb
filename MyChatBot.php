@@ -6,13 +6,14 @@ require_once __DIR__ . '/Providers/AwsBedrockProvider.php';
 require_once __DIR__ . '/Overrides/FileVectorStore.php';
 require_once __DIR__ . '/Providers/AwsBedrockEmbeddingsProvider.php';
 
-use NeuronAI\Providers\AIProviderInterface;
-use App\Neuron\Providers\AwsBedrockProvider;
-use App\Neuron\Providers\AwsBedrockEmbeddingsProvider;
-use NeuronAI\RAG\Embeddings\EmbeddingsProviderInterface;
 use NeuronAI\RAG\RAG;
 use App\Neuron\Overrides\FileVectorStore;
+use NeuronAI\Providers\AIProviderInterface;
+use App\Neuron\Providers\AwsBedrockProvider;
+use NeuronAI\RAG\VectorStore\PineconeVectorStore;
 use NeuronAI\RAG\VectorStore\VectorStoreInterface;
+use App\Neuron\Providers\AwsBedrockEmbeddingsProvider;
+use NeuronAI\RAG\Embeddings\EmbeddingsProviderInterface;
 
 class MyChatBot extends RAG
 {
@@ -54,11 +55,21 @@ class MyChatBot extends RAG
         );
     }
     
+    // protected function vectorStore(): VectorStoreInterface
+    // {
+    //     return new FileVectorStore(
+    //         directory: __DIR__,
+    //         name: 'demo'
+    //     );
+    // }
+    
     protected function vectorStore(): VectorStoreInterface
     {
-        return new FileVectorStore(
-            directory: __DIR__,
-            name: 'demo'
+        $pineconeApiKey = $_ENV['PINECONE_API_KEY'] ?? null;
+        $pineconeIndexUrl = $_ENV['PINECONE_INDEX_URL'] ?? null;
+        return new PineconeVectorStore(
+            key: $pineconeApiKey,
+            indexUrl: $pineconeIndexUrl
         );
     }
 }
